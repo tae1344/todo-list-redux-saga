@@ -39,7 +39,7 @@ const Todo = ({ todos }) => {
         </form>
       </div>
       <div>
-        {todos &&
+        {todos ?
           todos.map((todo) => {
             const { id, content, isCheck } = todo;
             return (
@@ -49,7 +49,7 @@ const Todo = ({ todos }) => {
                 <button onClick={() => handleRemove(id)}>삭제</button>
               </div>
             );
-          })}
+          }) : "등록 된 리스트가 없습니다."}
       </div>
     </>
   );

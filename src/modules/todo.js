@@ -30,16 +30,17 @@ export const checkTodo = (id, isCheck) => ({
 const API_URL = "http://test.paywork.io:8000";
 const config = {
   header: {
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "*",
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
   },
+  withCredentials: true
 };
 // saga
 function* getTodosSaga() {
   try {
     const lists = yield call(() =>
-      axios.get(`${API_URL}/todo`, config).then((res) => {
+      axios.get(`/todo`, config).then((res) => {
         console.log("res: ", res.data);
         return res.data.todoList;
       })
@@ -53,16 +54,17 @@ function* getTodosSaga() {
 
 function* addTodoSaga({ payload }) {
   const param = { payload };
+  console.log('addTODO :: ', param)
   try {
     const result = yield call(() =>
-      axios.post(`${API_URL}/todo`, param.payload, config).then((res) => {
+      axios.post(`/todo`, param.payload, config).then((res) => {
         console.log("res: ", res.data);
         return res.data;
       })
     );
     //console.log("add Todo :: ", param.payload);
-    console.log("add Todo result :: ", result);
-    yield put({ type: ADD_TODO_SUCCESS, payload: param.payload }); // --> reducer에서 해당하는 액션이 실행된다.
+    //console.log("add Todo result :: ", result);
+    yield put({ type: ADD_TODO_SUCCESS, payload: { content: param.payload.content, isCheck: false } }); // --> reducer에서 해당하는 액션이 실행된다.
   } catch (error) {
     yield put({ type: ADD_TODO_ERROR, error: error });
   }
@@ -72,7 +74,7 @@ function* deleteTodoSaga({ payload }) {
   const id = payload.id;
   try {
     const result = yield call(() =>
-      axios.delete(`${API_URL}/todo/${id}`).then((res) => {
+      axios.delete(`/todo/${id}`).then((res) => {
         console.log("res: ", res.data);
         return res.data;
       })
@@ -98,18 +100,24 @@ const todoReducer = (state = [], action) => {
       return { ...state, payload: action.payload };
     case ADD_TODO:
       return { ...state, payload: action.payload };
+
     case GET_TODOS_SUCCESS:
-      return [...state.payload, { content: action.payload, isCheck: false }];
-    //return { ...state, payload: action.payload };
+      console.log('GET_TODOS ::', action.payload)
+      return { ...state, payload: [...action.payload] };
+    case ADD_TODO_SUCCESS:
+      console.log('ADD_TODO :: ', state)
+
+      return { ...state, payload: [...action.payload] };
+    case DELETE_TODO_SUCCESS:
+      const lists = state.payload.filter((todo) => todo.id !== action.payload.id);
+      return { ...state, payload: [...lists] };
 
     case GET_TODOS_ERROR:
-      return { ...state, error: action.error };
-    case ADD_TODO_SUCCESS:
-      return { ...state, payload: action.payload };
     case ADD_TODO_ERROR:
+    case DELETE_TODO_ERROR:
       return { ...state, error: action.error };
-    case DELETE_TODO_SUCCESS:
-      return state.payload.filter((todo) => todo.id !== action.payload.id);
+
+
 
     default:
       return state;
