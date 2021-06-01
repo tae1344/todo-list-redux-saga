@@ -1,5 +1,5 @@
 import axios from "axios";
-import { call, put, takeEvery } from "redux-saga/effects";
+import { call, put, take, takeEvery } from "redux-saga/effects";
 
 // 액션 타입
 const ADD_TODO = "todo/ADD_TODO";
@@ -13,6 +13,10 @@ const ADD_TODO_SUCCESS = "todo/ADD_TODO_SUCCESS";
 const ADD_TODO_ERROR = "todo/ADD_TODO_ERROR";
 const DELETE_TODO_SUCCESS = "todo/DELETE_TODO_SUCCESS";
 const DELETE_TODO_ERROR = "todo/DELETE_TODO_ERROR";
+const UPDATE_TODO_SUCCESS = "todo/UPDATE_TODO_SUCCESS";
+const UPDATE_TODO_ERROR = "todo/UPDATE_TODO_ERROR";
+const CHECK_TODO_SUCCESS = "todo/CHECK_TODO_SUCCESS";
+const CHECK_TODO_ERROR = "todo/CHECK_TODO_ERROR";
 
 // 액션 생성함수
 export const getTodos = () => ({ type: GET_TODOS });
@@ -27,62 +31,85 @@ export const checkTodo = (id, isCheck) => ({
   payload: { id, isCheck },
 });
 
-const API_URL = "http://test.paywork.io:8000";
-const config = {
-  header: {
-    "Access-Control-Allow-Headers": "*",
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-  },
-  withCredentials: true,
-};
 // saga
+// 목록 불러오는 saga
 function* getTodosSaga() {
   try {
     const lists = yield call(() =>
-      axios.get(`/todo`, config).then((res) => {
-        console.log("res: ", res.data);
+      axios.get(`/todo`).then((res) => {
         return res.data.todoList;
       })
     );
-    console.log("lists", lists);
     yield put({ type: GET_TODOS_SUCCESS, payload: lists });
   } catch (error) {
     yield put({ type: GET_TODOS_ERROR, error: error });
   }
 }
 
+// 목록 추가 saga
 function* addTodoSaga({ payload }) {
   const param = { payload };
-  console.log("addTODO :: ", param);
   try {
     const result = yield call(() =>
-      axios.post(`/todo`, param.payload, config).then((res) => {
-        console.log("res: ", res.data);
+      axios.post(`/todo`, param.payload).then((res) => {
         return res.data;
       })
     );
-    //console.log("add Todo :: ", param.payload);
-    //console.log("add Todo result :: ", result);
-    yield put({ type: ADD_TODO_SUCCESS, payload: { content: param.payload.content, isCheck: false } }); // --> reducer에서 해당하는 액션이 실행된다.
+    // console.log("result :: ", result);
+    yield put({ type: GET_TODOS });
   } catch (error) {
     yield put({ type: ADD_TODO_ERROR, error: error });
   }
 }
 
+// 목록 삭제 saga
 function* deleteTodoSaga({ payload }) {
   const id = payload.id;
   try {
     const result = yield call(() =>
       axios.delete(`/todo/${id}`).then((res) => {
-        console.log("res: ", res.data);
         return res.data;
       })
     );
-
+    // console.log("result :: ", result);
     yield put({ type: DELETE_TODO_SUCCESS, payload: { id } });
   } catch (error) {
     yield put({ type: DELETE_TODO_ERROR, error: error });
+  }
+}
+
+// 목록 수정 saga
+function* updateTodoSaga({ payload }) {
+  const id = payload.id;
+  const content = payload.content;
+  try {
+    const result = yield call(() =>
+      axios.post(`/todo/${id}`, { content }).then((res) => {
+        return res.data;
+      })
+    );
+    // console.log("result :: ", result);
+    yield put({ type: GET_TODOS });
+  } catch (error) {
+    yield put({ type: UPDATE_TODO_ERROR, error: error });
+  }
+}
+
+// 체크 변경 saga
+function* checkTodoSaga({ payload }) {
+  const id = payload.id;
+  const isCheck = payload.isCheck;
+
+  try {
+    const result = yield call(() =>
+      axios.post(`/todo/${id}`, { isCheck }).then((res) => {
+        return res.data;
+      })
+    );
+    // console.log("result :: ", result);
+    yield put({ type: DELETE_TODO, payload: { id } });
+  } catch (error) {
+    yield put({ type: CHECK_TODO_ERROR, error: error });
   }
 }
 
@@ -91,30 +118,34 @@ export function* todoSaga() {
   yield takeEvery(GET_TODOS, getTodosSaga);
   yield takeEvery(ADD_TODO, addTodoSaga);
   yield takeEvery(DELETE_TODO, deleteTodoSaga);
+  yield takeEvery(UPDATE_TODO, updateTodoSaga);
+  yield takeEvery(CHECK_TODO, checkTodoSaga);
 }
 
-// reducer
-const todoReducer = (state = [], action) => {
-  switch (action.type) {
-    case GET_TODOS:
-      return { ...state, payload: action.payload };
-    case ADD_TODO:
-      return { ...state, payload: action.payload };
+// 초기 상태 값
+const initState = {
+  lists: [],
+  payload: "",
+};
 
+// reducer
+const todoReducer = (state = initState, action) => {
+  switch (action.type) {
     case GET_TODOS_SUCCESS:
       console.log("GET_TODOS ::", action.payload);
-      return { ...state, payload: [...action.payload] };
+      return { ...state, lists: [...action.payload] };
     case ADD_TODO_SUCCESS:
       console.log("ADD_TODO :: ", state);
-
-      return { ...state, payload: [...action.payload] };
+      return { ...state, lists: [...state.lists, action.payload] };
     case DELETE_TODO_SUCCESS:
-      const lists = state.payload.filter((todo) => todo.id !== action.payload.id);
-      return { ...state, payload: [...lists] };
+      const lists = state.lists.filter((todo) => todo.id !== action.payload.id);
+      return { ...state, lists: [...lists] };
 
     case GET_TODOS_ERROR:
     case ADD_TODO_ERROR:
     case DELETE_TODO_ERROR:
+    case CHECK_TODO_ERROR:
+    case UPDATE_TODO_ERROR:
       return { ...state, error: action.error };
 
     default:

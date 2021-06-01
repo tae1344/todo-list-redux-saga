@@ -9,7 +9,9 @@ import rootReducer, { rootSaga } from "./modules";
 
 import App from "./App";
 
-const sagaMiddleware = createSagaMiddleware(); // 사가 미들웨어를 만듭니다.
+// 스토어, 미들웨어를 생성하고 적용시켜줍니다.
+
+const sagaMiddleware = createSagaMiddleware();
 
 const store = createStore(rootReducer, composeWithDevTools(applyMiddleware(sagaMiddleware, logger)));
 
