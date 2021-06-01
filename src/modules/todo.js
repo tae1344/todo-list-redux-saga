@@ -98,18 +98,22 @@ const todoReducer = (state = [], action) => {
       return { ...state, payload: action.payload };
     case ADD_TODO:
       return { ...state, payload: action.payload };
+
     case GET_TODOS_SUCCESS:
-      return [...state.payload, { content: action.payload, isCheck: false }];
-    //return { ...state, payload: action.payload };
+      console.log("GET_TODOS ::", action.payload);
+      return { ...state, payload: [...action.payload] };
+    case ADD_TODO_SUCCESS:
+      console.log("ADD_TODO :: ", state);
+
+      return { ...state, payload: [...action.payload] };
+    case DELETE_TODO_SUCCESS:
+      const lists = state.payload.filter((todo) => todo.id !== action.payload.id);
+      return { ...state, payload: [...lists] };
 
     case GET_TODOS_ERROR:
-      return { ...state, error: action.error };
-    case ADD_TODO_SUCCESS:
-      return { ...state, payload: action.payload };
     case ADD_TODO_ERROR:
+    case DELETE_TODO_ERROR:
       return { ...state, error: action.error };
-    case DELETE_TODO_SUCCESS:
-      return state.payload.filter((todo) => todo.id !== action.payload.id);
 
     default:
       return state;
